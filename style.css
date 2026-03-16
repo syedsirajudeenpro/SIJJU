@@ -1,0 +1,26 @@
+body.dark-mode {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+}
+
+.main-content {
+    margin-left: 250px; /* Adjust based on your sidebar width */
+    padding: 40px;
+}
+
+.stat-card h4 {
+    margin: 0;
+    color: #888;
+}
+
+.news-card:hover {
+    background: #252525 !important;
+    transform: translateX(5px);
+    transition: 0.3s;
+}
+
+.sidebar a:hover {
+    color: #4caf50 !important;
+}
