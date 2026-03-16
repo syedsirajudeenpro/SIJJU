@@ -1,53 +1,51 @@
 <?php
-// Prevent direct access to this file
-if (!isset($conn)) { die("Direct access not allowed."); }
+$uid = $_SESSION['user_id'];
 
-// Mock data for your StockPulse chart (we can connect this to an API later!)
-$stock_labels = ["Apple", "Google", "Microsoft", "Amazon", "Tesla"];
-$stock_prices = [175.50, 142.10, 405.20, 178.30, 165.10];
+// Handle the Buy Transaction
+if (isset($_POST['buy_stock'])) {
+    $symbol = $_POST['symbol'];
+    $qty = (int)$_POST['qty'];
+    $price = (float)$_POST['price'];
+    $total_cost = $qty * $price;
+
+    // 1. Check if user has enough money in wallet
+    $user_data = $conn->query("SELECT wallet_balance FROM users WHERE id = $uid")->fetch_assoc();
+    
+    if ($user_data['wallet_balance'] >= $total_cost) {
+        // 2. Subtract money from wallet
+        $conn->query("UPDATE users SET wallet_balance = wallet_balance - $total_cost WHERE id = $uid");
+
+        // 3. Add to portfolio
+        $conn->query("INSERT INTO portfolio (user_id, symbol, quantity, buy_price) VALUES ($uid, '$symbol', $qty, $price)");
+        
+        echo "<script>alert('Purchase Successful! Check your Portfolio.');</script>";
+    } else {
+        echo "<script>alert('Insufficient Balance in Wallet!');</script>";
+    }
+}
+
+$stocks = $conn->query("SELECT * FROM stocks LIMIT 50");
 ?>
 
-<div class="dashboard-container">
-    <h2>Welcome to StockPulse Dashboard 📊</h2>
-    
-    <div class="stats-grid" style="display: flex; gap: 20px; margin-bottom: 30px;">
-        <div class="stat-card" style="padding: 20px; background: #2c2c2c; border-radius: 8px; flex: 1;">
-            <h4>Wallet Balance</h4>
-            <p style="font-size: 24px; color: #4caf50;">$<?php echo number_format($_SESSION['wallet'] ?? 100000, 2); ?></p>
-        </div>
-        <div class="stat-card" style="padding: 20px; background: #2c2c2c; border-radius: 8px; flex: 1;">
-            <h4>Active Stocks</h4>
-            <p style="font-size: 24px;">12</p>
-        </div>
-    </div>
-
-    <div style="background: #1e1e1e; padding: 20px; border-radius: 10px;">
-        <canvas id="stockChart"></canvas>
-    </div>
+<div class="card">
+    <h3>Available Stocks to Invest</h3>
+    <table>
+        <tr><th>Company</th><th>Price (Live)</th><th>Action</th></tr>
+        <?php while($s = $stocks->fetch_assoc()): 
+            $live_price = rand(500, 3000); // Simulated real-time price
+        ?>
+        <tr>
+            <td><strong><?php echo $s['symbol']; ?></strong><br><small><?php echo $s['company_name']; ?></small></td>
+            <td style="color:var(--green);">₹<?php echo number_format($live_price, 2); ?></td>
+            <td>
+                <form method="POST" style="display:flex; gap:5px;">
+                    <input type="hidden" name="symbol" value="<?php echo $s['symbol']; ?>">
+                    <input type="hidden" name="price" value="<?php echo $live_price; ?>">
+                    <input type="number" name="qty" value="1" min="1" style="width:50px;">
+                    <button type="submit" name="buy_stock" class="btn-green">Buy</button>
+                </form>
+            </td>
+        </tr>
+        <?php endwhile; ?>
+    </table>
 </div>
-
-<script>
-const ctx = document.getElementById('stockChart').getContext('2d');
-const stockChart = new Chart(ctx, {
-    type: 'bar', // You can change this to 'line' or 'pie'
-    data: {
-        labels: <?php echo json_encode($stock_labels); ?>,
-        datasets: [{
-            label: 'Current Stock Prices ($)',
-            data: <?php echo json_encode($stock_prices); ?>,
-            backgroundColor: 'rgba(76, 175, 80, 0.6)',
-            borderColor: 'rgba(76, 175, 80, 1)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        scales: {
-            y: { beginAtZero: true, grid: { color: '#444' } },
-            x: { grid: { color: '#444' } }
-        },
-        plugins: {
-            legend: { labels: { color: '#fff' } }
-        }
-    }
-});
-</script>
